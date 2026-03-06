@@ -9,19 +9,26 @@
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
         body { font-family: 'Inter', sans-serif; }
     </style>
 </head>
-<body>
+<body class="bg-gray-100">
     <div id="root"></div>
     
     <script type="text/babel">
-        const { useState } = React;
+        const { useState, useEffect } = React;
 
         function App() {
-            const [todos, setTodos] = useState([]);
+            const [todos, setTodos] = useState(() => {
+                const saved = localStorage.getItem('todos');
+                return saved ? JSON.parse(saved) : [];
+            });
             const [inputValue, setInputValue] = useState('');
+
+            useEffect(() => {
+                localStorage.setItem('todos', JSON.stringify(todos));
+            }, [todos]);
 
             const addTodo = () => {
                 if (inputValue.trim() === '') return;
@@ -46,6 +53,10 @@
                 setTodos(todos.filter(todo => todo.id !== id));
             };
 
+            const clearCompleted = () => {
+                setTodos(todos.filter(todo => !todo.completed));
+            };
+
             const handleKeyPress = (e) => {
                 if (e.key === 'Enter') {
                     addTodo();
@@ -53,62 +64,61 @@
             };
 
             const completedCount = todos.filter(t => t.completed).length;
+            const activeCount = todos.length - completedCount;
 
             return (
-                <div className="min-h-screen bg-gradient-to-br from-purple-500 via-pink-500 to-orange-400 flex items-center justify-center p-4">
-                    <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden">
-                        <div className="bg-gradient-to-r from-purple-600 to-pink-600 p-6 text-white">
-                            <h1 className="text-3xl font-bold mb-2">📝 Мои дела</h1>
-                            <p className="text-purple-100">
+                <div className="min-h-screen flex items-center justify-center p-4">
+                    <div className="w-full max-w-lg bg-white rounded-lg shadow-md">
+                        {/* Header */}
+                        <div className="bg-blue-600 p-4 text-white rounded-t-lg">
+                            <h1 className="text-2xl font-semibold">Задачи</h1>
+                            <p className="text-blue-100 text-sm mt-1">
                                 {todos.length === 0 
-                                    ? 'Начни свой список задач'
-                                    : `Выполнено: ${completedCount} из ${todos.length}`
+                                    ? 'Начни свой список'
+                                    : `${activeCount} активных, ${completedCount} выполнено`
                                 }
                             </p>
                         </div>
 
-                        <div className="p-6 border-b border-gray-100">
+                        {/* Input */}
+                        <div className="p-4 border-b border-gray-200">
                             <div className="flex gap-2">
                                 <input
                                     type="text"
                                     value={inputValue}
                                     onChange={(e) => setInputValue(e.target.value)}
                                     onKeyPress={handleKeyPress}
-                                    placeholder="Что нужно сделать?"
-                                    className="flex-1 px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-purple-500 transition-colors"
+                                    placeholder="Новая задача..."
+                                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
                                 />
                                 <button
                                     onClick={addTodo}
-                                    className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold rounded-xl hover:opacity-90 transition-opacity active:scale-95"
+                                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                                 >
-                                    +
+                                    Добавить
                                 </button>
                             </div>
                         </div>
 
-                        <div className="max-h-96 overflow-y-auto">
+                        {/* Todo List */}
+                        <div className="max-h-80 overflow-y-auto">
                             {todos.length === 0 ? (
                                 <div className="p-8 text-center text-gray-400">
-                                    <div className="text-6xl mb-4">✨</div>
-                                    <p>Нет задач — отличное время для отдыха!</p>
+                                    <p>Нет задач</p>
                                 </div>
                             ) : (
                                 <ul className="divide-y divide-gray-100">
                                     {todos.map((todo) => (
                                         <li
                                             key={todo.id}
-                                            className="flex items-center gap-3 p-4 hover:bg-gray-50 transition-colors group"
+                                            className="flex items-center gap-3 p-3 hover:bg-gray-50 group"
                                         >
-                                            <button
-                                                onClick={() => toggleTodo(todo.id)}
-                                                className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
-                                                    todo.completed
-                                                        ? 'bg-green-500 border-green-500 text-white'
-                                                        : 'border-gray-300 hover:border-purple-500'
-                                                }`}
-                                            >
-                                                {todo.completed && '✓'}
-                                            </button>
+                                            <input
+                                                type="checkbox"
+                                                checked={todo.completed}
+                                                onChange={() => toggleTodo(todo.id)}
+                                                className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500"
+                                            />
                                             
                                             <span
                                                 className={`flex-1 ${
@@ -122,9 +132,9 @@
                                             
                                             <button
                                                 onClick={() => deleteTodo(todo.id)}
-                                                className="opacity-0 group-hover:opacity-100 px-3 py-1 text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                                                className="text-gray-400 hover:text-red-500 px-2"
                                             >
-                                                🗑️
+                                                ×
                                             </button>
                                         </li>
                                     ))}
@@ -132,9 +142,18 @@
                             )}
                         </div>
 
-                        {todos.length > 0 && (
-                            <div className="p-4 bg-gray-50 text-center text-sm text-gray-500">
-                                Нажми на кружок, чтобы отметить выполненным
+                        {/* Footer */}
+                        {todos.length > 0 && completedCount > 0 && (
+                            <div className="p-3 bg-gray-50 rounded-b-lg border-t border-gray-200 flex justify-between items-center">
+                                <span className="text-sm text-gray-500">
+                                    {completedCount} выполнено
+                                </span>
+                                <button
+                                    onClick={clearCompleted}
+                                    className="text-sm text-red-500 hover:text-red-700"
+                                >
+                                    Очистить выполненные
+                                </button>
                             </div>
                         )}
                     </div>
