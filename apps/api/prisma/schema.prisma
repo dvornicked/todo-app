@@ -1,0 +1,75 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  password      String
+  refreshTokens String[]  @default([])
+  todos         Todo[]
+  tags          Tag[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+enum TodoStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+  ARCHIVED
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+model Todo {
+  id          String     @id @default(uuid())
+  title       String
+  description String?
+  status      TodoStatus @default(TODO)
+  priority    Priority   @default(MEDIUM)
+  dueDate     DateTime?
+  userId      String
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tags        Tag[]
+  subtasks    Subtask[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@index([userId, status])
+  @@index([userId, createdAt])
+  @@index([userId, priority])
+}
+
+model Tag {
+  id     String @id @default(uuid())
+  name   String
+  color  String @default("#3B82F6")
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  todos  Todo[]
+
+  @@unique([name, userId])
+}
+
+model Subtask {
+  id        String   @id @default(uuid())
+  title     String
+  completed Boolean  @default(false)
+  order     Int
+  todoId    String
+  todo      Todo     @relation(fields: [todoId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@index([todoId, order])
+}
