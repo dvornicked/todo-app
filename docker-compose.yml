@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  api:
+    build:
+      context: .
+      target: api
+    container_name: todo-api
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3001:3001"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=file:./data/todos.db
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
+    volumes:
+      - ./data:/app/data
+    networks:
+      - todo-network
+
+  web:
+    build:
+      context: .
+      target: web
+    container_name: todo-web
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3000:80"
+    depends_on:
+      - api
+    networks:
+      - todo-network
+
+networks:
+  todo-network:
+    driver: bridge
