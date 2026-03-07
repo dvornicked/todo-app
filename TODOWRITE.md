@@ -1,23 +1,23 @@
 # TodoWrite - Vite Refactor Plan
 
-## Backend In Progress
-- [ ] Task 2: Update Frontend to use API
-  - Replace localStorage with API calls
-  - Add login/register UI
-  - JWT token storage
+## Project Complete ✅
 
-## Backend Done
-- [x] Task 1: Create Backend Structure with JWT Auth - COMPLETED (commit a137466)
-  - Express + SQLite + JWT
-  - Register/login endpoints
-  - Protected todo routes
-  - 200 todo limit per user
+### Backend Done
+- [x] Task 1: JWT Auth Backend - COMPLETED (commit a137466)
+- [x] Task 2: Frontend API Integration - COMPLETED (commit 4af09d5)
 
-## Frontend Done
+### Frontend Done
 - [x] Task 1-10: All frontend tasks COMPLETED
 
-## Todo
-- [ ] Task 3: Final Integration & Testing
+### Features Implemented:
+- ✅ JWT authentication (register/login)
+- ✅ Protected API routes
+- ✅ 200 todo limit per user
+- ✅ Login/Register pages
+- ✅ Logout functionality
+- ✅ API client with error handling
+- ✅ Auth context for state management
+- ✅ Automatic token storage in localStorage
 
 ## Backend (Paused)
 - [ ] Backend Task 1: Create Backend Project Structure
