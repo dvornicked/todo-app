@@ -15,8 +15,8 @@ function loadTodos() {
 function saveTodos(todos) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(todos));
-  } catch (error) {
-    console.error('Failed to save todos:', error);
+  } catch {
+    // Silently fail if localStorage is not available
   }
 }
 

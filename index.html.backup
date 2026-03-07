@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#2563eb">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect fill='%232563eb' width='192' height='192' rx='20'/%3E%3Ctext x='96' y='130' font-size='100' text-anchor='middle' fill='white'%3E✓%3C/text%3E%3C/svg%3E">
+    <title>Todo App</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div id="root"></div>
+    
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        function App() {
+            const [todos, setTodos] = useState(() => {
+                const saved = localStorage.getItem('todos');
+                return saved ? JSON.parse(saved) : [];
+            });
+            const [inputValue, setInputValue] = useState('');
+            const [deferredPrompt, setDeferredPrompt] = useState(null);
+            const [isInstallable, setIsInstallable] = useState(false);
+
+            useEffect(() => {
+                localStorage.setItem('todos', JSON.stringify(todos));
+            }, [todos]);
+
+            useEffect(() => {
+                window.addEventListener('beforeinstallprompt', (e) => {
+                    e.preventDefault();
+                    setDeferredPrompt(e);
+                    setIsInstallable(true);
+                });
+            }, []);
+
+            const handleInstall = async () => {
+                if (deferredPrompt) {
+                    deferredPrompt.prompt();
+                    const { outcome } = await deferredPrompt.userChoice;
+                    if (outcome === 'accepted') {
+                        setIsInstallable(false);
+                    }
+                }
+            };
+
+            const addTodo = () => {
+                if (inputValue.trim() === '') return;
+                
+                const newTodo = {
+                    id: Date.now(),
+                    text: inputValue.trim(),
+                    completed: false,
+                };
+                
+                setTodos([...todos, newTodo]);
+                setInputValue('');
+            };
+
+            const toggleTodo = (id) => {
+                setTodos(todos.map(todo => 
+                    todo.id === id ? { ...todo, completed: !todo.completed } : todo
+                ));
+            };
+
+            const deleteTodo = (id) => {
+                setTodos(todos.filter(todo => todo.id !== id));
+            };
+
+            const clearCompleted = () => {
+                setTodos(todos.filter(todo => !todo.completed));
+            };
+
+            const handleKeyPress = (e) => {
+                if (e.key === 'Enter') {
+                    addTodo();
+                }
+            };
+
+            const completedCount = todos.filter(t => t.completed).length;
+            const activeCount = todos.length - completedCount;
+
+            return (
+                <div className="min-h-screen flex flex-col items-center p-4">
+                    <div className="w-full max-w-lg bg-white rounded-lg shadow-md my-auto">
+                        {/* Header */}
+                        <div className="bg-blue-600 p-4 text-white rounded-t-lg flex justify-between items-start">
+                            <div>
+                                <h1 className="text-2xl font-semibold">Задачи</h1>
+                                <p className="text-blue-100 text-sm mt-1">
+                                    {todos.length === 0 
+                                        ? 'Начни свой список'
+                                        : `${activeCount} активных, ${completedCount} выполнено`
+                                    }
+                                </p>
+                            </div>
+                            {isInstallable && (
+                                <button 
+                                    onClick={handleInstall}
+                                    className="px-3 py-1 bg-white text-blue-600 text-sm rounded-lg hover:bg-blue-50 transition-colors"
+                                >
+                                    📲 Установить
+                                </button>
+                            )}
+                        </div>
+
+                        {/* Input */}
+                        <div className="p-4 border-b border-gray-200">
+                            <div className="flex gap-2">
+                                <input
+                                    type="text"
+                                    value={inputValue}
+                                    onChange={(e) => setInputValue(e.target.value)}
+                                    onKeyPress={handleKeyPress}
+                                    placeholder="Новая задача..."
+                                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                                />
+                                <button
+                                    onClick={addTodo}
+                                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                                >
+                                    Добавить
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Todo List */}
+                        <div className="max-h-80 overflow-y-auto">
+                            {todos.length === 0 ? (
+                                <div className="p-8 text-center text-gray-400">
+                                    <p>Нет задач</p>
+                                </div>
+                            ) : (
+                                <ul className="divide-y divide-gray-100">
+                                    {todos.map((todo) => (
+                                        <li
+                                            key={todo.id}
+                                            className="flex items-center gap-3 p-3 hover:bg-gray-50 group"
+                                        >
+                                            <input
+                                                type="checkbox"
+                                                checked={todo.completed}
+                                                onChange={() => toggleTodo(todo.id)}
+                                                className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500"
+                                            />
+                                            
+                                            <span
+                                                className={`flex-1 ${
+                                                    todo.completed
+                                                        ? 'text-gray-400 line-through'
+                                                        : 'text-gray-700'
+                                                }`}
+                                            >
+                                                {todo.text}
+                                            </span>
+                                            
+                                            <button
+                                                onClick={() => deleteTodo(todo.id)}
+                                                className="text-gray-400 hover:text-red-500 px-2"
+                                            >
+                                                ×
+                                            </button>
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
+                        </div>
+
+                        {/* Footer */}
+                        {todos.length > 0 && completedCount > 0 && (
+                            <div className="p-3 bg-gray-50 rounded-b-lg border-t border-gray-200 flex justify-between items-center">
+                                <span className="text-sm text-gray-500">
+                                    {completedCount} выполнено
+                                </span>
+                                <button
+                                    onClick={clearCompleted}
+                                    className="text-sm text-red-500 hover:text-red-700"
+                                >
+                                    Очистить выполненные
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        }
+
+        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    </script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js')
+                .then((reg) => console.log('Service Worker registered'))
+                .catch((err) => console.log('Service Worker error', err));
+        }
+    </script>
+</body>
+</html>
