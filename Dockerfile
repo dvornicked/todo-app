@@ -3,9 +3,16 @@
 # Stage 1: Dependencies
 FROM node:22-alpine AS deps
 WORKDIR /app
+
+# Copy root package files
 COPY package*.json ./
-COPY apps/*/package*.json ./apps/*/
-COPY packages/*/package*.json ./packages/*/
+
+# Copy workspace package.json files
+COPY apps/api/package*.json ./apps/api/
+COPY apps/web/package*.json ./apps/web/
+COPY packages/shared/package*.json ./packages/shared/
+
+# Install all dependencies
 RUN npm ci
 
 # Stage 2: Build shared package
@@ -22,7 +29,6 @@ WORKDIR /app
 COPY --from=shared-builder /app/node_modules ./node_modules
 COPY --from=shared-builder /app/packages ./packages
 COPY apps/api ./apps/api
-COPY packages/shared/package.json ./packages/shared/
 RUN cd apps/api && npx prisma generate && npm run build
 
 # Stage 4: Build Web
@@ -31,7 +37,6 @@ WORKDIR /app
 COPY --from=shared-builder /app/node_modules ./node_modules
 COPY --from=shared-builder /app/packages ./packages
 COPY apps/web ./apps/web
-COPY packages/shared/package.json ./packages/shared/
 RUN cd apps/web && npm run build
 
 # Stage 5: Production API

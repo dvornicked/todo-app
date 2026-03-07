@@ -1,25 +1,33 @@
-import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { createTodoSchema, type CreateTodoInput } from '@todo/shared';
-import { trpc } from '../../lib/trpc';
-import { useRequireAuth } from '../../hooks/useAuth';
+import { z } from 'zod';
+import { trpc } from '../lib/trpc';
+import { useAuthStore } from '../hooks/useAuth';
+import { useEffect } from 'react';
 
-export const Route = createFileRoute('/todos/new')({
-  component: NewTodoPage,
+const newTodoSchema = z.object({
+  title: z.string().min(1).max(200),
+  description: z.string().max(2000).optional(),
+  status: z.enum(['TODO', 'IN_PROGRESS', 'DONE', 'ARCHIVED']),
+  priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']),
 });
 
-function NewTodoPage() {
-  const isAuth = useRequireAuth();
-  const navigate = useNavigate();
-  const utils = trpc.useUtils();
+type NewTodoForm = z.infer<typeof newTodoSchema>;
 
-  const { data: tags } = trpc.tags.list.useQuery();
-  
+export function NewTodoPage() {
+  const navigate = useNavigate();
+  const { accessToken } = useAuthStore();
+
+  useEffect(() => {
+    if (!accessToken) {
+      navigate('/login');
+    }
+  }, [accessToken, navigate]);
+
   const createTodo = trpc.todos.create.useMutation({
     onSuccess: () => {
-      utils.todos.list.invalidate();
-      navigate({ to: '/todos' });
+      navigate('/todos');
     },
   });
 
@@ -27,25 +35,29 @@ function NewTodoPage() {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<CreateTodoInput>({
-    resolver: zodResolver(createTodoSchema),
+  } = useForm<NewTodoForm>({
+    resolver: zodResolver(newTodoSchema),
     defaultValues: {
       status: 'TODO',
       priority: 'MEDIUM',
     },
   });
 
-  const onSubmit = (data: CreateTodoInput) => {
-    createTodo.mutate(data);
-  };
+  const onSubmit = handleSubmit((data) => {
+    createTodo.mutate({
+      ...data,
+      tagIds: [],
+      subtasks: [],
+    });
+  });
 
-  if (!isAuth) return null;
+  if (!accessToken) return null;
 
   return (
     <div className="max-w-2xl mx-auto">
       <h1 className="text-2xl font-bold mb-6">Create New Todo</h1>
       
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 bg-white p-6 rounded-lg shadow">
+      <form onSubmit={onSubmit} className="space-y-6 bg-white p-6 rounded-lg shadow">
         <div>
           <label className="block text-sm font-medium mb-1">Title *</label>
           <input
@@ -88,15 +100,6 @@ function NewTodoPage() {
           </div>
         </div>
 
-        <div>
-          <label className="block text-sm font-medium mb-1">Due Date</label>
-          <input
-            type="date"
-            {...register('dueDate', { valueAsDate: true })}
-            className="w-full px-3 py-2 border rounded-md"
-          />
-        </div>
-
         {createTodo.error && (
           <p className="text-red-500 text-sm">{createTodo.error.message}</p>
         )}
@@ -112,7 +115,7 @@ function NewTodoPage() {
           
           <button
             type="button"
-            onClick={() => navigate({ to: '/todos' })}
+            onClick={() => navigate('/todos')}
             className="py-2 px-4 border rounded-md hover:bg-gray-50"
           >
             Cancel

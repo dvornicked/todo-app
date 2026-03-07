@@ -2,11 +2,15 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { httpBatchLink } from '@trpc/client';
-import { RouterProvider, createRouter } from '@tanstack/react-router';
-import { routeTree } from './routeTree.gen';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { trpc } from './lib/trpc';
 import { useAuthStore } from './hooks/useAuth';
 import './styles/index.css';
+
+import { LoginPage } from './pages/LoginPage';
+import { RegisterPage } from './pages/RegisterPage';
+import { TodosPage } from './pages/TodosPage';
+import { NewTodoPage } from './pages/NewTodoPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -29,16 +33,32 @@ const trpcClient = trpc.createClient({
   ],
 });
 
-const router = createRouter({
-  routeTree,
-  context: { queryClient },
-  defaultPreload: 'intent',
-});
+function App() {
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <nav className="bg-white shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between h-16">
+            <div className="flex items-center space-x-8">
+              <a href="/" className="text-xl font-bold text-blue-600">
+                Todo App
+              </a>
+            </div>
+          </div>
+        </div>
+      </nav>
 
-declare module '@tanstack/react-router' {
-  interface Register {
-    router: typeof router;
-  }
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <Routes>
+          <Route path="/" element={<Navigate to="/todos" />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route path="/todos" element={<TodosPage />} />
+          <Route path="/todos/new" element={<NewTodoPage />} />
+        </Routes>
+      </main>
+    </div>
+  );
 }
 
 const rootElement = document.getElementById('root')!;
@@ -48,7 +68,9 @@ root.render(
   <StrictMode>
     <trpc.Provider client={trpcClient} queryClient={queryClient}>
       <QueryClientProvider client={queryClient}>
-        <RouterProvider router={router} />
+        <BrowserRouter>
+          <App />
+        </BrowserRouter>
       </QueryClientProvider>
     </trpc.Provider>
   </StrictMode>

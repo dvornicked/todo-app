@@ -1,21 +1,17 @@
-import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
+import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { loginSchema, type LoginInput } from '@todo/shared';
 import { trpc } from '../lib/trpc';
 import { useAuthStore } from '../hooks/useAuth';
 
-export const Route = createFileRoute('/login')({
-  component: LoginPage,
-});
-
-function LoginPage() {
+export function LoginPage() {
   const navigate = useNavigate();
   const setAuth = useAuthStore((state) => state.setAuth);
   const login = trpc.auth.login.useMutation({
     onSuccess: (data) => {
       setAuth(data.user, data.accessToken);
-      navigate({ to: '/todos' });
+      navigate('/todos');
     },
   });
 
@@ -27,9 +23,9 @@ function LoginPage() {
     resolver: zodResolver(loginSchema),
   });
 
-  const onSubmit = (data: LoginInput) => {
+  const onSubmit = handleSubmit((data) => {
     login.mutate(data);
-  };
+  });
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -37,38 +33,28 @@ function LoginPage() {
         <div>
           <h2 className="text-3xl font-bold text-center">Sign in</h2>
         </div>
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit(onSubmit)}>
+        <form className="mt-8 space-y-6" onSubmit={onSubmit}>
           <div>
-            <label htmlFor="email" className="block text-sm font-medium">
-              Email
-            </label>
+            <label className="block text-sm font-medium">Email</label>
             <input
               {...register('email')}
               type="email"
               className="mt-1 block w-full px-3 py-2 border rounded-md"
             />
-            {errors.email && (
-              <p className="text-red-500 text-sm">{errors.email.message}</p>
-            )}
+            {errors.email && <p className="text-red-500 text-sm">{errors.email.message}</p>}
           </div>
 
           <div>
-            <label htmlFor="password" className="block text-sm font-medium">
-              Password
-            </label>
+            <label className="block text-sm font-medium">Password</label>
             <input
               {...register('password')}
               type="password"
               className="mt-1 block w-full px-3 py-2 border rounded-md"
             />
-            {errors.password && (
-              <p className="text-red-500 text-sm">{errors.password.message}</p>
-            )}
+            {errors.password && <p className="text-red-500 text-sm">{errors.password.message}</p>}
           </div>
 
-          {login.error && (
-            <p className="text-red-500 text-sm">{login.error.message}</p>
-          )}
+          {login.error && <p className="text-red-500 text-sm">{login.error.message}</p>}
 
           <button
             type="submit"
@@ -80,9 +66,7 @@ function LoginPage() {
 
           <p className="text-center text-sm">
             Don't have an account?{' '}
-            <Link to="/register" className="text-blue-600 hover:underline">
-              Sign up
-            </Link>
+            <a href="/register" className="text-blue-600 hover:underline">Sign up</a>
           </p>
         </form>
       </div>
