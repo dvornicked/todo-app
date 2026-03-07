@@ -49,9 +49,15 @@ export default defineConfig({
     })
   ],
   base: '/todo-app/',
+  resolve: {
+    conditions: ['development']
+  },
   test: {
     globals: true,
     environment: 'jsdom',
-    setupFiles: ['./src/test/setup.js']
+    setupFiles: ['./src/test/setup.js'],
+    deps: {
+      inline: ['react', 'react-dom']
+    }
   }
 });
