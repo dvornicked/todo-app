@@ -48,12 +48,16 @@ ENV DATABASE_URL=file:./data/todos.db
 COPY --from=api-builder /app/apps/api/dist ./dist
 COPY --from=api-builder /app/apps/api/prisma ./prisma
 COPY --from=api-builder /app/node_modules ./node_modules
+COPY --from=api-builder /app/packages/shared/dist ./packages/shared/dist
+COPY --from=api-builder /app/packages/shared/package.json ./packages/shared/
 COPY --from=api-builder /app/package*.json ./
 EXPOSE 3001
 CMD ["node", "dist/index.js"]
 
-# Stage 6: Production Web
-FROM nginx:alpine AS web
-COPY --from=web-builder /app/apps/web/dist /usr/share/nginx/html
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-EXPOSE 80
+# Stage 6: Production Web — статика без nginx
+FROM node:22-alpine AS web
+WORKDIR /app
+RUN npm install -g serve
+COPY --from=web-builder /app/apps/web/dist ./dist
+EXPOSE 3000
+CMD ["serve", "-s", "dist", "-l", "3000"]

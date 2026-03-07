@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useNavigate } from '@tanstack/react-router';
+import { useNavigate } from 'react-router-dom';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
@@ -38,7 +38,7 @@ export function useRequireAuth() {
 
   useEffect(() => {
     if (!isAuthenticated) {
-      navigate({ to: '/login' });
+      navigate('/login');
     }
   }, [isAuthenticated, navigate]);
 
