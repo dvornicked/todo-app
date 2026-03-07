@@ -41,7 +41,7 @@ async function main() {
   });
 
   // Error handler
-  server.setErrorHandler((error, request, reply) => {
+  server.setErrorHandler((error: Error, request, reply) => {
     server.log.error(error);
     reply.status(500).send({
       error: 'Internal Server Error',

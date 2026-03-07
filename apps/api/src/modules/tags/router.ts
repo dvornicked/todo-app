@@ -21,11 +21,12 @@ export const tagsRouter = router({
       try {
         return await ctx.prisma.tag.create({
           data: {
-            ...input,
+            name: input.name,
+            color: input.color,
             userId: ctx.user!.id,
           },
         });
-      } catch (error) {
+      } catch {
         throw new TRPCError({
           code: 'BAD_REQUEST',
           message: 'Tag with this name already exists',
@@ -42,9 +43,9 @@ export const tagsRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const { id, ...data } = input;
+      const tagId = input.id;
       const tag = await ctx.prisma.tag.findFirst({
-        where: { id, userId: ctx.user!.id },
+        where: { id: tagId, userId: ctx.user!.id },
       });
 
       if (!tag) {
@@ -52,8 +53,11 @@ export const tagsRouter = router({
       }
 
       return ctx.prisma.tag.update({
-        where: { id },
-        data,
+        where: { id: tagId },
+        data: {
+          name: input.name,
+          color: input.color,
+        },
       });
     }),
 
@@ -61,7 +65,7 @@ export const tagsRouter = router({
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
       const tag = await ctx.prisma.tag.findFirst({
-        where: { id, userId: ctx.user!.id },
+        where: { id: input.id, userId: ctx.user!.id },
       });
 
       if (!tag) {

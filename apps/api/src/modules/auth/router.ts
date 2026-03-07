@@ -74,7 +74,7 @@ export const authRouter = router({
         });
 
         return { accessToken: tokens.accessToken };
-      } catch (error) {
+      } catch {
         throw new TRPCError({
           code: 'UNAUTHORIZED',
           message: 'Invalid refresh token',

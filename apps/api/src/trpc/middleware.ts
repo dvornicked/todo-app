@@ -1,7 +1,6 @@
 import { TRPCError } from '@trpc/server';
 import jwt from 'jsonwebtoken';
 import { t } from './trpc';
-import type { Context } from './context';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret';
 
@@ -47,6 +46,3 @@ export const checkTodoLimit = t.middleware(async ({ ctx, next }) => {
 
   return next({ ctx });
 });
-
-export const protectedProcedure = t.procedure.use(isAuthenticated);
-export const limitedProcedure = t.procedure.use(isAuthenticated).use(checkTodoLimit);

@@ -1,7 +1,7 @@
-import { router } from './trpc/trpc';
-import { authRouter } from './modules/auth/router';
-import { todosRouter } from './modules/todos/router';
-import { tagsRouter } from './modules/tags/router';
+import { router } from './trpc';
+import { authRouter } from '../modules/auth/router';
+import { todosRouter } from '../modules/todos/router';
+import { tagsRouter } from '../modules/tags/router';
 
 export const appRouter = router({
   auth: authRouter,
