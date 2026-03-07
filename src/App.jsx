@@ -1,12 +1,15 @@
 import React from 'react';
 import { useTodos } from './hooks/useTodos';
 import { useInstallPrompt } from './hooks/useInstallPrompt';
+import { usePWAUpdate } from './hooks/usePWAUpdate';
 import { AddTodo } from './components/AddTodo';
 import { TodoList } from './components/TodoList';
+import { PWAUpdate } from './components/PWAUpdate';
 
 function App() {
   const { todos, stats, addTodo, toggleTodo, deleteTodo, clearCompleted } = useTodos();
   const { isInstallable, handleInstall } = useInstallPrompt();
+  const { needRefresh, offlineReady, closePrompt, updateServiceWorker } = usePWAUpdate();
 
   return (
     <div className="min-h-screen flex flex-col items-center p-4">
@@ -60,6 +63,13 @@ function App() {
           </div>
         )}
       </div>
+
+      <PWAUpdate
+        needRefresh={needRefresh}
+        offlineReady={offlineReady}
+        onClose={closePrompt}
+        onUpdate={updateServiceWorker}
+      />
     </div>
   );
 }
