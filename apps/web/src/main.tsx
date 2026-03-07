@@ -1,8 +1,11 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { httpBatchLink } from '@trpc/client';
 import { RouterProvider, createRouter } from '@tanstack/react-router';
 import { routeTree } from './routeTree.gen';
+import { trpc } from './lib/trpc';
+import { useAuthStore } from './hooks/useAuth';
 import './styles/index.css';
 
 const queryClient = new QueryClient({
@@ -12,6 +15,18 @@ const queryClient = new QueryClient({
       retry: 1,
     },
   },
+});
+
+const trpcClient = trpc.createClient({
+  links: [
+    httpBatchLink({
+      url: '/trpc',
+      headers() {
+        const token = useAuthStore.getState().accessToken;
+        return token ? { Authorization: `Bearer ${token}` } : {};
+      },
+    }),
+  ],
 });
 
 const router = createRouter({
@@ -31,8 +46,10 @@ const root = createRoot(rootElement);
 
 root.render(
   <StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <RouterProvider router={router} />
-    </QueryClientProvider>
+    <trpc.Provider client={trpcClient} queryClient={queryClient}>
+      <QueryClientProvider client={queryClient}>
+        <RouterProvider router={router} />
+      </QueryClientProvider>
+    </trpc.Provider>
   </StrictMode>
 );
