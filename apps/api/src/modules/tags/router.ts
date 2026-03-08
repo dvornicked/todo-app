@@ -1,13 +1,12 @@
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 import { router, protectedProcedure } from '../../trpc/trpc';
+import * as tagService from './service';
+import { DatabaseError } from '../../lib/db-errors';
 
 export const tagsRouter = router({
   list: protectedProcedure.query(async ({ ctx }) => {
-    return ctx.prisma.tag.findMany({
-      where: { userId: ctx.user!.id },
-      orderBy: { name: 'asc' },
-    });
+    return tagService.getTags(ctx.user!.id);
   }),
 
   create: protectedProcedure
@@ -19,17 +18,17 @@ export const tagsRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       try {
-        return await ctx.prisma.tag.create({
-          data: {
-            name: input.name,
-            color: input.color,
-            userId: ctx.user!.id,
-          },
-        });
-      } catch {
+        return await tagService.createTag(ctx.user!.id, input);
+      } catch (error) {
+        if (error instanceof DatabaseError) {
+          throw new TRPCError({
+            code: 'INTERNAL_SERVER_ERROR',
+            message: 'Service temporarily unavailable',
+          });
+        }
         throw new TRPCError({
           code: 'BAD_REQUEST',
-          message: 'Tag with this name already exists',
+          message: error instanceof Error ? error.message : 'Failed to create tag',
         });
       }
     }),
@@ -43,36 +42,41 @@ export const tagsRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const tagId = input.id;
-      const tag = await ctx.prisma.tag.findFirst({
-        where: { id: tagId, userId: ctx.user!.id },
-      });
-
-      if (!tag) {
-        throw new TRPCError({ code: 'NOT_FOUND', message: 'Tag not found' });
-      }
-
-      return ctx.prisma.tag.update({
-        where: { id: tagId },
-        data: {
+      try {
+        return await tagService.updateTag(ctx.user!.id, input.id, {
           name: input.name,
           color: input.color,
-        },
-      });
+        });
+      } catch (error) {
+        if (error instanceof DatabaseError) {
+          throw new TRPCError({
+            code: 'INTERNAL_SERVER_ERROR',
+            message: 'Service temporarily unavailable',
+          });
+        }
+        if (error instanceof Error && error.message === 'Tag not found') {
+          throw new TRPCError({ code: 'NOT_FOUND', message: 'Tag not found' });
+        }
+        throw error;
+      }
     }),
 
   delete: protectedProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      const tag = await ctx.prisma.tag.findFirst({
-        where: { id: input.id, userId: ctx.user!.id },
-      });
-
-      if (!tag) {
-        throw new TRPCError({ code: 'NOT_FOUND', message: 'Tag not found' });
+      try {
+        return await tagService.deleteTag(ctx.user!.id, input.id);
+      } catch (error) {
+        if (error instanceof DatabaseError) {
+          throw new TRPCError({
+            code: 'INTERNAL_SERVER_ERROR',
+            message: 'Service temporarily unavailable',
+          });
+        }
+        if (error instanceof Error && error.message === 'Tag not found') {
+          throw new TRPCError({ code: 'NOT_FOUND', message: 'Tag not found' });
+        }
+        throw error;
       }
-
-      await ctx.prisma.tag.delete({ where: { id: input.id } });
-      return { success: true };
     }),
 });
