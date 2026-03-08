@@ -11,8 +11,8 @@ export async function getTodos(userId: string, filters: TodoFilters) {
     ...(tags?.length && { tags: { some: { id: { in: tags } } } }),
     ...(search && {
       OR: [
-        { title: { contains: search, mode: 'insensitive' as const } },
-        { description: { contains: search, mode: 'insensitive' as const } },
+        { title: { contains: search } },
+        { description: { contains: search } },
       ],
     }),
   };

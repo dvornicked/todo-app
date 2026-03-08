@@ -117,8 +117,8 @@ describe('Todo Service', () => {
           where: expect.objectContaining({
             userId,
             OR: [
-              { title: { contains: 'important', mode: 'insensitive' } },
-              { description: { contains: 'important', mode: 'insensitive' } },
+              { title: { contains: 'important' } },
+              { description: { contains: 'important' } },
             ],
           }),
         })
