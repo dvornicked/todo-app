@@ -100,6 +100,23 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           script: |
             cd ~/todo-app
+            
+            # Создаём папку для БД если её нет
+            mkdir -p data
+            chmod 755 data
+            
+            # Pull и запуск
             docker-compose pull
             docker-compose up -d
+            
+            # Ждём запуск API
+            sleep 5
+            
+            # Применяем миграции
+            docker-compose exec -T api npx prisma migrate deploy || true
+            
+            # Проверяем health
+            curl -sf http://localhost:3001/health || echo "Health check failed"
+            
+            # Очистка
             docker system prune -f

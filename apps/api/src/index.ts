@@ -5,6 +5,8 @@ import { fastifyTRPCPlugin } from '@trpc/server/adapters/fastify';
 import dotenv from 'dotenv';
 import { appRouter } from './trpc/router';
 import { createContext } from './trpc/context';
+import { getHealthStatus } from './lib/health';
+import { DatabaseError } from './lib/db-errors';
 
 dotenv.config();
 
@@ -35,14 +37,25 @@ async function main() {
     },
   });
 
-  // Health check
-  server.get('/health', async () => {
-    return { status: 'ok', timestamp: new Date().toISOString() };
+  // Health check с проверкой БД
+  server.get('/health', async (_, reply) => {
+    const status = await getHealthStatus();
+    const statusCode = status.status === 'healthy' ? 200 : 503;
+    return reply.status(statusCode).send(status);
   });
 
   // Error handler
   server.setErrorHandler((error: Error, request, reply) => {
     server.log.error(error);
+    
+    // Обработка ошибок БД - скрываем технические детали
+    if (error instanceof DatabaseError) {
+      return reply.status(503).send({
+        error: 'Service Unavailable',
+        message: 'Database temporarily unavailable. Please try again later.',
+      });
+    }
+    
     reply.status(500).send({
       error: 'Internal Server Error',
       message: process.env.NODE_ENV === 'development' ? error.message : undefined,

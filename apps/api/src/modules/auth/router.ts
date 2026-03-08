@@ -3,6 +3,21 @@ import { z } from 'zod';
 import { router, publicProcedure, protectedProcedure } from '../../trpc/trpc';
 import { loginSchema } from '@todo/shared';
 import * as authService from './service';
+import { DatabaseError } from '../../lib/db-errors';
+
+/**
+ * Преобразует ошибку в TRPCError с корректным кодом
+ */
+function handleAuthError(error: unknown): never {
+  if (error instanceof DatabaseError) {
+    throw new TRPCError({
+      code: 'INTERNAL_SERVER_ERROR',
+      message: 'Service temporarily unavailable. Please try again later.',
+    });
+  }
+  
+  throw error;
+}
 
 export const authRouter = router({
   register: publicProcedure
@@ -25,6 +40,15 @@ export const authRouter = router({
         });
         return { success: true, user };
       } catch (error) {
+        // Проверяем системные ошибки (БД) - скрываем детали
+        if (error instanceof DatabaseError) {
+          throw new TRPCError({
+            code: 'INTERNAL_SERVER_ERROR',
+            message: 'Service temporarily unavailable. Please try again later.',
+          });
+        }
+        
+        // Бизнес-логика ошибок
         throw new TRPCError({
           code: 'BAD_REQUEST',
           message: error instanceof Error ? error.message : 'Registration failed',
@@ -52,6 +76,14 @@ export const authRouter = router({
           accessToken: result.accessToken,
         };
       } catch (error) {
+        // Проверяем системные ошибки (БД)
+        if (error instanceof DatabaseError) {
+          throw new TRPCError({
+            code: 'INTERNAL_SERVER_ERROR',
+            message: 'Service temporarily unavailable. Please try again later.',
+          });
+        }
+        
         throw new TRPCError({
           code: 'UNAUTHORIZED',
           message: error instanceof Error ? error.message : 'Login failed',

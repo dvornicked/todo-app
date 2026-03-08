@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { prisma } from '../../prisma';
+import { withDbErrorHandling } from '../../lib/db-errors';
 import type { LoginInput, RegisterInput } from '@todo/shared';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret';
@@ -29,9 +30,10 @@ export function generateTokens(userId: string, email: string) {
 }
 
 export async function register(input: RegisterInput) {
-  const existingUser = await prisma.user.findUnique({
-    where: { email: input.email },
-  });
+  const existingUser = await withDbErrorHandling(
+    () => prisma.user.findUnique({ where: { email: input.email } }),
+    'register.findUser'
+  );
 
   if (existingUser) {
     throw new Error('User already exists');
@@ -39,21 +41,25 @@ export async function register(input: RegisterInput) {
 
   const hashedPassword = await hashPassword(input.password);
 
-  const user = await prisma.user.create({
-    data: {
-      email: input.email,
-      password: hashedPassword,
-    },
-    select: { id: true, email: true, createdAt: true },
-  });
+  const user = await withDbErrorHandling(
+    () => prisma.user.create({
+      data: {
+        email: input.email,
+        password: hashedPassword,
+      },
+      select: { id: true, email: true, createdAt: true },
+    }),
+    'register.createUser'
+  );
 
   return user;
 }
 
 export async function login(input: LoginInput) {
-  const user = await prisma.user.findUnique({
-    where: { email: input.email },
-  });
+  const user = await withDbErrorHandling(
+    () => prisma.user.findUnique({ where: { email: input.email } }),
+    'login.findUser'
+  );
 
   if (!user) {
     throw new Error('Invalid credentials');
@@ -69,13 +75,16 @@ export async function login(input: LoginInput) {
 
   // Store refresh token
   const hashedRefresh = await bcrypt.hash(tokens.refreshToken, SALT_ROUNDS);
-  await prisma.refreshToken.create({
-    data: {
-      token: hashedRefresh,
-      userId: user.id,
-      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-    },
-  });
+  await withDbErrorHandling(
+    () => prisma.refreshToken.create({
+      data: {
+        token: hashedRefresh,
+        userId: user.id,
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      },
+    }),
+    'login.createRefreshToken'
+  );
 
   return {
     user: { id: user.id, email: user.email },
@@ -90,10 +99,13 @@ export async function refreshTokens(refreshToken: string) {
       email: string;
     };
 
-    const user = await prisma.user.findUnique({
-      where: { id: decoded.userId },
-      include: { refreshTokens: true },
-    });
+    const user = await withDbErrorHandling(
+      () => prisma.user.findUnique({
+        where: { id: decoded.userId },
+        include: { refreshTokens: true },
+      }),
+      'refreshTokens.findUser'
+    );
 
     if (!user) {
       throw new Error('User not found');
@@ -113,13 +125,16 @@ export async function refreshTokens(refreshToken: string) {
     // Replace old refresh token
     const hashedNew = await bcrypt.hash(tokens.refreshToken, SALT_ROUNDS);
     const oldTokenIndex = tokenValid.findIndex(Boolean);
-    await prisma.refreshToken.update({
-      where: { id: user.refreshTokens[oldTokenIndex].id },
-      data: {
-        token: hashedNew,
-        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-      },
-    });
+    await withDbErrorHandling(
+      () => prisma.refreshToken.update({
+        where: { id: user.refreshTokens[oldTokenIndex].id },
+        data: {
+          token: hashedNew,
+          expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        },
+      }),
+      'refreshTokens.updateToken'
+    );
 
     return tokens;
   } catch {
@@ -128,10 +143,13 @@ export async function refreshTokens(refreshToken: string) {
 }
 
 export async function logout(userId: string, refreshToken: string) {
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    include: { refreshTokens: true },
-  });
+  const user = await withDbErrorHandling(
+    () => prisma.user.findUnique({
+      where: { id: userId },
+      include: { refreshTokens: true },
+    }),
+    'logout.findUser'
+  );
 
   if (!user) return;
 
@@ -139,7 +157,10 @@ export async function logout(userId: string, refreshToken: string) {
   for (const token of user.refreshTokens) {
     const isMatch = await bcrypt.compare(refreshToken, token.token);
     if (isMatch) {
-      await prisma.refreshToken.delete({ where: { id: token.id } });
+      await withDbErrorHandling(
+        () => prisma.refreshToken.delete({ where: { id: token.id } }),
+        'logout.deleteToken'
+      );
       break;
     }
   }

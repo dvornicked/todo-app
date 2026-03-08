@@ -45,14 +45,23 @@ WORKDIR /app
 RUN apk add --no-cache openssl
 ENV NODE_ENV=production
 ENV DATABASE_URL=file:./data/todos.db
+
+# Создаём папку для БД
+RUN mkdir -p /app/data
+
 COPY --from=api-builder /app/apps/api/dist ./dist
 COPY --from=api-builder /app/apps/api/prisma ./prisma
 COPY --from=api-builder /app/node_modules ./node_modules
 COPY --from=api-builder /app/packages/shared/dist ./packages/shared/dist
 COPY --from=api-builder /app/packages/shared/package.json ./packages/shared/
 COPY --from=api-builder /app/package*.json ./
+
+# Копируем entrypoint отдельно (не из builder)
+COPY apps/api/entrypoint.sh ./entrypoint.sh
+RUN chmod +x entrypoint.sh
+
 EXPOSE 3001
-CMD ["node", "dist/index.js"]
+CMD ["./entrypoint.sh"]
 
 # Stage 6: Production Web — статика без nginx
 FROM node:22-alpine AS web
