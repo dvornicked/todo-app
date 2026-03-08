@@ -99,6 +99,14 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
           script: |
+            # Проверяем и фиксим Caddy конфиг если нужно
+            if grep -q "^    reverse_proxy localhost:3000" /etc/caddy/Caddyfile; then
+              echo "Fixing Caddy config..."
+              sudo sed -i 's/^    reverse_proxy localhost:3000/    handle {\n        reverse_proxy localhost:3000\n    }/' /etc/caddy/Caddyfile
+              sudo systemctl reload caddy
+              echo "Caddy config fixed and reloaded"
+            fi
+            
             cd ~/todo-app
             
             # Создаём папку для БД если её нет
