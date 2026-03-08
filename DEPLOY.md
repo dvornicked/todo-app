@@ -63,8 +63,7 @@ Add to `/etc/caddy/Caddyfile`:
 
 ```
 todos.pets.dvornicked.ru {
-    reverse_proxy localhost:3000
-
+    # API endpoints first
     handle /api/* {
         uri strip_prefix /api
         reverse_proxy localhost:3001
@@ -76,6 +75,11 @@ todos.pets.dvornicked.ru {
 
     handle /trpc/* {
         reverse_proxy localhost:3001
+    }
+
+    # Everything else to frontend
+    handle {
+        reverse_proxy localhost:3000
     }
 }
 ```
